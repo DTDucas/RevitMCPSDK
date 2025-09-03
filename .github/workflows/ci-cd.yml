@@ -22,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        revit-config: ['Debug R20', 'Debug R21', 'Debug R22', 'Debug R23', 'Debug R24', 'Debug R25']
+        revit-config: ['Debug R20', 'Debug R21', 'Debug R22', 'Debug R23', 'Debug R24', 'Debug R25', 'Debug R26']
 
     steps:
     - name: Checkout code
@@ -119,7 +119,7 @@ jobs:
 
     - name: Build and Pack all Revit versions
       run: |
-        $configs = @('Release R20', 'Release R21', 'Release R22', 'Release R23', 'Release R24', 'Release R25')
+        $configs = @('Release R20', 'Release R21', 'Release R22', 'Release R23', 'Release R24', 'Release R25', 'Release R26')
         New-Item -ItemType Directory -Force -Path ./nupkg
         
         foreach ($config in $configs) {
@@ -229,7 +229,7 @@ jobs:
 
     - name: Build and Pack all Revit versions
       run: |
-        $configs = @('Release R20', 'Release R21', 'Release R22', 'Release R23', 'Release R24', 'Release R25')
+        $configs = @('Release R20', 'Release R21', 'Release R22', 'Release R23', 'Release R24', 'Release R25', 'Release R26')
         New-Item -ItemType Directory -Force -Path ./nupkg
         
         foreach ($config in $configs) {
@@ -246,13 +246,17 @@ jobs:
     - name: Get package info
       id: package-info
       run: |
-        $packageFile = Get-ChildItem -Path "nupkg/*.nupkg" | Select-Object -First 1
-        $packageName = [System.IO.Path]::GetFileNameWithoutExtension($packageFile.Name) -replace '\.\d+.*$', ''
-        $packageVersion = ($packageFile.Name -replace "^$packageName\.", '') -replace '\.nupkg$', ''
+        $packageFiles = Get-ChildItem -Path "nupkg/*.nupkg"
+        $baseVersion = "0.0.3"  # Base version from project
+        
+        # Get the first package file to extract the package name
+        $firstPackage = $packageFiles | Select-Object -First 1
+        $packageName = "RevitMCPSDK"
         
         echo "package-name=$packageName" >> $env:GITHUB_OUTPUT
-        echo "package-version=$packageVersion" >> $env:GITHUB_OUTPUT
-        echo "Package: $packageName version $packageVersion"
+        echo "package-version=$baseVersion" >> $env:GITHUB_OUTPUT
+        echo "Package: $packageName base version $baseVersion"
+        echo "Generated packages for all Revit versions (2020-2025)"
 
     - name: Publish to NuGet
       run: |

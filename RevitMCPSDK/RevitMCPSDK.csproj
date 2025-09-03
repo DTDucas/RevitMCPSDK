@@ -6,8 +6,8 @@
 		<PlatformTarget>x64</PlatformTarget>
 		<ImplicitUsings>true</ImplicitUsings>
 		<PublishAddinFiles>true</PublishAddinFiles>
-		<Configurations>Debug R20;Debug R21;Debug R22;Debug R23;Debug R24;Debug R25</Configurations>
-		<Configurations>$(Configurations);Release R20;Release R21;Release R22;Release R23;Release R24;Release R25</Configurations>
+		<Configurations>Debug R20;Debug R21;Debug R22;Debug R23;Debug R24;Debug R25;Debug R26;Release R20;Release R21;Release R22;Release R23;Release R24;Release R25;Release R26</Configurations>
+		<Configurations>$(Configurations);Release R20;Release R21;Release R22;Release R23;Release R24;Release R25;Release R26</Configurations>
 
 		<!-- NuGet Package Properties -->
 		<GeneratePackageOnBuild>false</GeneratePackageOnBuild>
@@ -21,9 +21,10 @@
 		<RepositoryType>git</RepositoryType>
 		<PackageTags>Revit;API;SDK;MCP;Duong Tran Quang - DTDucas</PackageTags>
 		<PackageIcon>RevitMCPSDK256.png</PackageIcon>
-		<Version>0.1</Version>
-		<FileVersion>0.1</FileVersion>
-		<AssemblyVersion>0.1</AssemblyVersion>
+		<BaseVersion>0.0.3</BaseVersion>
+		<Version>$(BaseVersion)</Version>
+		<FileVersion>$(BaseVersion)</FileVersion>
+		<AssemblyVersion>$(BaseVersion)</AssemblyVersion>
 
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<NoWarn>$(NoWarn);1591</NoWarn>
@@ -34,6 +35,9 @@
 		<TargetFramework>net48</TargetFramework>
 		<AssemblyName>RevitMCPSDK</AssemblyName>
 		<DefineConstants>REVIT2020</DefineConstants>
+		<Version>$(RevitVersion).$(BaseVersion)</Version>
+		<FileVersion>$(RevitVersion).$(BaseVersion)</FileVersion>
+		<AssemblyVersion>$(RevitVersion).$(BaseVersion)</AssemblyVersion>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="$(Configuration.Contains('R21'))">
@@ -41,6 +45,9 @@
 		<TargetFramework>net48</TargetFramework>
 		<AssemblyName>RevitMCPSDK</AssemblyName>
 		<DefineConstants>REVIT2021</DefineConstants>
+		<Version>$(RevitVersion).$(BaseVersion)</Version>
+		<FileVersion>$(RevitVersion).$(BaseVersion)</FileVersion>
+		<AssemblyVersion>$(RevitVersion).$(BaseVersion)</AssemblyVersion>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="$(Configuration.Contains('R22'))">
@@ -48,6 +55,9 @@
 		<TargetFramework>net48</TargetFramework>
 		<AssemblyName>RevitMCPSDK</AssemblyName>
 		<DefineConstants>REVIT2022</DefineConstants>
+		<Version>$(RevitVersion).$(BaseVersion)</Version>
+		<FileVersion>$(RevitVersion).$(BaseVersion)</FileVersion>
+		<AssemblyVersion>$(RevitVersion).$(BaseVersion)</AssemblyVersion>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="$(Configuration.Contains('R23'))">
@@ -55,6 +65,9 @@
 		<TargetFramework>net48</TargetFramework>
 		<AssemblyName>RevitMCPSDK</AssemblyName>
 		<DefineConstants>REVIT2023</DefineConstants>
+		<Version>$(RevitVersion).$(BaseVersion)</Version>
+		<FileVersion>$(RevitVersion).$(BaseVersion)</FileVersion>
+		<AssemblyVersion>$(RevitVersion).$(BaseVersion)</AssemblyVersion>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="$(Configuration.Contains('R24'))">
@@ -62,6 +75,9 @@
 		<TargetFramework>net48</TargetFramework>
 		<AssemblyName>RevitMCPSDK</AssemblyName>
 		<DefineConstants>REVIT2024</DefineConstants>
+		<Version>$(RevitVersion).$(BaseVersion)</Version>
+		<FileVersion>$(RevitVersion).$(BaseVersion)</FileVersion>
+		<AssemblyVersion>$(RevitVersion).$(BaseVersion)</AssemblyVersion>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="$(Configuration.Contains('R25'))">
@@ -69,6 +85,19 @@
 		<TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
 		<AssemblyName>RevitMCPSDK</AssemblyName>
 		<DefineConstants>REVIT2025</DefineConstants>
+		<Version>$(RevitVersion).$(BaseVersion)</Version>
+		<FileVersion>$(RevitVersion).$(BaseVersion)</FileVersion>
+		<AssemblyVersion>$(RevitVersion).$(BaseVersion)</AssemblyVersion>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="$(Configuration.Contains('R26'))">
+		<RevitVersion>2026</RevitVersion>
+		<TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+		<AssemblyName>RevitMCPSDK</AssemblyName>
+		<DefineConstants>REVIT2026</DefineConstants>
+		<Version>$(RevitVersion).$(BaseVersion)</Version>
+		<FileVersion>$(RevitVersion).$(BaseVersion)</FileVersion>
+		<AssemblyVersion>$(RevitVersion).$(BaseVersion)</AssemblyVersion>
 	</PropertyGroup>
 
 	<PropertyGroup>

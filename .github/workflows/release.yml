@@ -70,7 +70,7 @@ jobs:
 
     - name: Build and test all configurations
       run: |
-        $configs = @('Debug R20', 'Debug R21', 'Debug R22', 'Debug R23', 'Debug R24', 'Debug R25')
+        $configs = @('Debug R20', 'Debug R21', 'Debug R22', 'Debug R23', 'Debug R24', 'Debug R25', 'Debug R26')
         foreach ($config in $configs) {
           Write-Host "Restoring dependencies for configuration: $config"
           dotnet restore ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj -p:Configuration="$config"
@@ -80,7 +80,7 @@ jobs:
 
     - name: Build and Pack all Revit versions
       run: |
-        $configs = @('Release R20', 'Release R21', 'Release R22', 'Release R23', 'Release R24', 'Release R25')
+        $configs = @('Release R20', 'Release R21', 'Release R22', 'Release R23', 'Release R24', 'Release R25', 'Release R26')
         New-Item -ItemType Directory -Force -Path ./nupkg
         
         foreach ($config in $configs) {
