@@ -19,8 +19,9 @@ env:
 jobs:
   test:
     name: Test RevitMCPSDK
-    runs-on: windows-latest
+    runs-on: windows-2022
     strategy:
+      fail-fast: false
       matrix:
         revit-config: ['Debug R20', 'Debug R21', 'Debug R22', 'Debug R23', 'Debug R24', 'Debug R25']
 
@@ -32,21 +33,28 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: |
+          4.8.x
           6.x
           8.x
 
     - name: Restore dependencies
-      run: dotnet restore ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj
+      run: |
+        Write-Host "Restoring dependencies for configuration: ${{ matrix.revit-config }}"
+        dotnet restore ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --configuration "${{ matrix.revit-config }}"
 
     - name: Build solution
-      run: dotnet build ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --no-restore --configuration "${{ matrix.revit-config }}"
+      run: |
+        Write-Host "Building configuration: ${{ matrix.revit-config }}"
+        dotnet build ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --no-restore --configuration "${{ matrix.revit-config }}" --verbosity minimal
 
     - name: Upload build artifacts
       if: always()
       uses: actions/upload-artifact@v4
       with:
         name: build-artifacts-${{ matrix.revit-config }}
-        path: ${{ env.PROJECT_PATH }}/bin/
+        path: |
+          ${{ env.PROJECT_PATH }}/bin/
+          ${{ env.PROJECT_PATH }}/obj/
         retention-days: 30
 
     - name: Notify Discord on Build Failure
@@ -87,7 +95,7 @@ jobs:
 
   build:
     name: Build NuGet Packages
-    runs-on: windows-latest
+    runs-on: windows-2022
     needs: test
     if: github.event_name == 'push'
 
@@ -99,19 +107,24 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: |
+          4.8.x
           6.x
           8.x
-
-    - name: Restore dependencies
-      run: dotnet restore ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj
 
     - name: Build and Pack all Revit versions
       run: |
         $configs = @('Release R20', 'Release R21', 'Release R22', 'Release R23', 'Release R24', 'Release R25')
+        New-Item -ItemType Directory -Force -Path ./nupkg
+        
         foreach ($config in $configs) {
+          Write-Host "Restoring dependencies for configuration: $config"
+          dotnet restore ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --configuration "$config"
+          
           Write-Host "Building configuration: $config"
-          dotnet build ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --no-restore --configuration "$config"
-          dotnet pack ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --no-build --configuration "$config" --output ./nupkg
+          dotnet build ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --no-restore --configuration "$config" --verbosity minimal
+          
+          Write-Host "Packing configuration: $config"
+          dotnet pack ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --no-build --configuration "$config" --output ./nupkg --verbosity minimal
         }
 
     - name: Upload package artifacts
@@ -123,7 +136,7 @@ jobs:
 
   security:
     name: Security Analysis
-    runs-on: windows-latest
+    runs-on: windows-2022
 
     steps:
     - name: Checkout code
@@ -133,14 +146,18 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: |
+          4.8.x
           6.x
           8.x
 
-    - name: Restore dependencies
-      run: dotnet restore ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj
+    - name: Restore dependencies for R25 configuration
+      run: dotnet restore ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --configuration "Release R25"
 
     - name: Run security analysis
-      run: dotnet list ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj package --vulnerable --include-transitive 2>&1 | Tee-Object -FilePath security-report.txt
+      run: |
+        Write-Host "Running security analysis on RevitMCPSDK dependencies"
+        dotnet list ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj package --vulnerable --include-transitive 2>&1 | Tee-Object -FilePath security-report.txt
+        Get-Content security-report.txt
 
     - name: Upload security report
       uses: actions/upload-artifact@v4
@@ -177,7 +194,7 @@ jobs:
 
   publish:
     name: Publish NuGet Packages
-    runs-on: windows-latest
+    runs-on: windows-2022
     needs: [test, build, security]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
@@ -189,19 +206,24 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: |
+          4.8.x
           6.x
           8.x
-
-    - name: Restore dependencies
-      run: dotnet restore ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj
 
     - name: Build and Pack all Revit versions
       run: |
         $configs = @('Release R20', 'Release R21', 'Release R22', 'Release R23', 'Release R24', 'Release R25')
+        New-Item -ItemType Directory -Force -Path ./nupkg
+        
         foreach ($config in $configs) {
+          Write-Host "Restoring dependencies for configuration: $config"
+          dotnet restore ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --configuration "$config"
+          
           Write-Host "Building configuration: $config"
-          dotnet build ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --no-restore --configuration "$config"
-          dotnet pack ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --no-build --configuration "$config" --output ./nupkg
+          dotnet build ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --no-restore --configuration "$config" --verbosity minimal
+          
+          Write-Host "Packing configuration: $config"
+          dotnet pack ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --no-build --configuration "$config" --output ./nupkg --verbosity minimal
         }
 
     - name: Get package info

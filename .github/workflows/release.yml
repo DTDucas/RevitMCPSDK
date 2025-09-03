@@ -36,7 +36,7 @@ jobs:
 
   release-revitmcpsdk:
     name: Release RevitMCPSDK
-    runs-on: windows-latest
+    runs-on: windows-2022
     needs: validate-inputs
 
     steps:
@@ -47,11 +47,9 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: |
+          4.8.x
           6.x
           8.x
-
-    - name: Restore dependencies
-      run: dotnet restore ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj
 
     - name: Update version in project file
       run: |
@@ -77,17 +75,23 @@ jobs:
       run: |
         $configs = @('Debug R20', 'Debug R21', 'Debug R22', 'Debug R23', 'Debug R24', 'Debug R25')
         foreach ($config in $configs) {
+          Write-Host "Restoring dependencies for configuration: $config"
+          dotnet restore ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --configuration "$config"
           Write-Host "Building and testing configuration: $config"
-          dotnet build ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --configuration "$config"
+          dotnet build ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --no-restore --configuration "$config" --verbosity minimal
         }
 
     - name: Build and Pack all Revit versions
       run: |
         $configs = @('Release R20', 'Release R21', 'Release R22', 'Release R23', 'Release R24', 'Release R25')
+        New-Item -ItemType Directory -Force -Path ./nupkg
+        
         foreach ($config in $configs) {
+          Write-Host "Restoring dependencies for configuration: $config"
+          dotnet restore ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --configuration "$config"
           Write-Host "Building and packing configuration: $config"
-          dotnet build ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --configuration "$config"
-          dotnet pack ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --no-build --configuration "$config" --output ./nupkg
+          dotnet build ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --no-restore --configuration "$config" --verbosity minimal
+          dotnet pack ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --no-build --configuration "$config" --output ./nupkg --verbosity minimal
         }
 
     - name: Publish to NuGet
