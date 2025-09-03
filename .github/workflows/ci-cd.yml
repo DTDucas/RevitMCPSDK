@@ -13,7 +13,6 @@ permissions:
   packages: write
 
 env:
-  DOTNET_VERSION: '8.x'
   PROJECT_PATH: 'RevitMCPSDK'
 
 jobs:
@@ -32,10 +31,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: |
-          4.8.x
-          6.x
-          8.x
+        dotnet-version: '8.x'
 
     - name: Restore dependencies
       run: |
@@ -53,9 +49,10 @@ jobs:
       with:
         name: build-artifacts-${{ matrix.revit-config }}
         path: |
-          ${{ env.PROJECT_PATH }}/bin/
-          ${{ env.PROJECT_PATH }}/obj/
+          ${{ env.PROJECT_PATH }}/bin/**/*
+          ${{ env.PROJECT_PATH }}/obj/**/*
         retention-days: 30
+      continue-on-error: true
 
     - name: Notify Discord on Build Failure
       if: failure() && github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -106,10 +103,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: |
-          4.8.x
-          6.x
-          8.x
+        dotnet-version: '8.x'
 
     - name: Build and Pack all Revit versions
       run: |
@@ -145,10 +139,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: |
-          4.8.x
-          6.x
-          8.x
+        dotnet-version: '8.x'
 
     - name: Restore dependencies for R25 configuration
       run: dotnet restore ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --configuration "Release R25"
@@ -205,10 +196,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: |
-          4.8.x
-          6.x
-          8.x
+        dotnet-version: '8.x'
 
     - name: Build and Pack all Revit versions
       run: |
