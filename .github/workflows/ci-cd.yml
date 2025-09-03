@@ -256,14 +256,22 @@ jobs:
         echo "package-name=$packageName" >> $env:GITHUB_OUTPUT
         echo "package-version=$baseVersion" >> $env:GITHUB_OUTPUT
         echo "Package: $packageName base version $baseVersion"
-        echo "Generated packages for all Revit versions (2020-2025)"
+        echo "Generated packages for all Revit versions (2020-2026)"
 
     - name: Publish to NuGet
       run: |
         $packages = Get-ChildItem -Path "nupkg/*.nupkg"
+        Write-Host "Found $($packages.Count) packages to publish:"
+        $packages | ForEach-Object { Write-Host "  - $($_.Name)" }
+        
         foreach ($package in $packages) {
           Write-Host "Publishing package: $($package.Name)"
-          dotnet nuget push $package.FullName --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+          try {
+            dotnet nuget push $package.FullName --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+            Write-Host "✅ Successfully published: $($package.Name)"
+          } catch {
+            Write-Host "❌ Failed to publish: $($package.Name) - $($_.Exception.Message)"
+          }
         }
 
     - name: Create GitHub Release
