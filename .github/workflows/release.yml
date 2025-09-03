@@ -73,9 +73,9 @@ jobs:
         $configs = @('Debug R20', 'Debug R21', 'Debug R22', 'Debug R23', 'Debug R24', 'Debug R25')
         foreach ($config in $configs) {
           Write-Host "Restoring dependencies for configuration: $config"
-          dotnet restore ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --configuration "$config"
+          dotnet restore ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj -p:Configuration="$config"
           Write-Host "Building and testing configuration: $config"
-          dotnet build ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --no-restore --configuration "$config" --verbosity minimal
+          dotnet build ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --no-restore -p:Configuration="$config" --verbosity minimal
         }
 
     - name: Build and Pack all Revit versions
@@ -85,10 +85,10 @@ jobs:
         
         foreach ($config in $configs) {
           Write-Host "Restoring dependencies for configuration: $config"
-          dotnet restore ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --configuration "$config"
+          dotnet restore ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj -p:Configuration="$config"
           Write-Host "Building and packing configuration: $config"
-          dotnet build ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --no-restore --configuration "$config" --verbosity minimal
-          dotnet pack ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --no-build --configuration "$config" --output ./nupkg --verbosity minimal
+          dotnet build ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --no-restore -p:Configuration="$config" --verbosity minimal
+          dotnet pack ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --no-build -p:Configuration="$config" --output ./nupkg --verbosity minimal
         }
 
     - name: Publish to NuGet
