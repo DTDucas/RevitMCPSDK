@@ -20,7 +20,7 @@
 		<RepositoryUrl>https://github.com/DTDucas/RevitMCPSDK.git</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageTags>Revit;API;SDK;MCP;Duong Tran Quang - DTDucas</PackageTags>
-		<PackageIcon>RevitMCPSDK.png</PackageIcon>
+		<PackageIcon>RevitMCPSDK256.png</PackageIcon>
 		<Version>0.1</Version>
 		<FileVersion>0.1</FileVersion>
 		<AssemblyVersion>0.1</AssemblyVersion>
@@ -102,8 +102,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<None Include="Resources\Icons\RevitMCPSDK.png" Pack="true" PackagePath="\" />
-		<None Include="Resources\Icons\RevitMCPSDK512.png" Pack="true" PackagePath="\" />
 		<None Include="Resources\Icons\RevitMCPSDK256.png" Pack="true" PackagePath="\" />
 	</ItemGroup>
 
