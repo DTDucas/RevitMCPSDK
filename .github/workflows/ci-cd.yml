@@ -1,0 +1,336 @@
+name: RevitMCPSDK CI/CD
+# Author: Duong Tran Quang - DTDucas
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  DOTNET_VERSION: '8.x'
+  PROJECT_PATH: 'RevitMCPSDK'
+
+jobs:
+  test:
+    name: Test RevitMCPSDK
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        revit-config: ['Debug R20', 'Debug R21', 'Debug R22', 'Debug R23', 'Debug R24', 'Debug R25']
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          6.x
+          8.x
+
+    - name: Restore dependencies
+      run: dotnet restore ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj
+
+    - name: Build solution
+      run: dotnet build ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --no-restore --configuration "${{ matrix.revit-config }}"
+
+    - name: Upload build artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-artifacts-${{ matrix.revit-config }}
+        path: ${{ env.PROJECT_PATH }}/bin/
+        retention-days: 30
+
+    - name: Notify Discord on Build Failure
+      if: failure() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: |
+        curl -X POST "${{ secrets.DISCORD_WEBHOOK_URL }}" \
+          -H "Content-Type: application/json" \
+          -d "{
+            \"embeds\": [{
+              \"title\": \"❌ Build Failed - RevitMCPSDK\",
+              \"description\": \"Build failed for configuration: ${{ matrix.revit-config }}\",
+              \"color\": 16711680,
+              \"fields\": [
+                {
+                  \"name\": \"Configuration\",
+                  \"value\": \"${{ matrix.revit-config }}\",
+                  \"inline\": true
+                },
+                {
+                  \"name\": \"Branch\",
+                  \"value\": \"${{ github.ref_name }}\",
+                  \"inline\": true
+                },
+                {
+                  \"name\": \"Commit\",
+                  \"value\": \"[${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})\",
+                  \"inline\": true
+                },
+                {
+                  \"name\": \"Workflow Run\",
+                  \"value\": \"[View Logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})\",
+                  \"inline\": true
+                }
+              ],
+              \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%S.000Z)\"
+            }]
+          }"
+
+  build:
+    name: Build NuGet Packages
+    runs-on: windows-latest
+    needs: test
+    if: github.event_name == 'push'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          6.x
+          8.x
+
+    - name: Restore dependencies
+      run: dotnet restore ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj
+
+    - name: Build and Pack all Revit versions
+      run: |
+        $configs = @('Release R20', 'Release R21', 'Release R22', 'Release R23', 'Release R24', 'Release R25')
+        foreach ($config in $configs) {
+          Write-Host "Building configuration: $config"
+          dotnet build ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --no-restore --configuration "$config"
+          dotnet pack ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --no-build --configuration "$config" --output ./nupkg
+        }
+
+    - name: Upload package artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: revitmcpsdk-nuget-packages
+        path: nupkg/*.nupkg
+        retention-days: 30
+
+  security:
+    name: Security Analysis
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          6.x
+          8.x
+
+    - name: Restore dependencies
+      run: dotnet restore ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj
+
+    - name: Run security analysis
+      run: dotnet list ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj package --vulnerable --include-transitive 2>&1 | Tee-Object -FilePath security-report.txt
+
+    - name: Upload security report
+      uses: actions/upload-artifact@v4
+      with:
+        name: security-report
+        path: security-report.txt
+        retention-days: 30
+
+    - name: Notify Discord on Security Issues
+      if: failure()
+      run: |
+        curl -X POST "${{ secrets.DISCORD_WEBHOOK_URL }}" \
+          -H "Content-Type: application/json" \
+          -d "{
+            \"embeds\": [{
+              \"title\": \"🚨 Security Alert - RevitMCPSDK\",
+              \"description\": \"Security vulnerabilities detected in RevitMCPSDK dependencies\",
+              \"color\": 16776960,
+              \"fields\": [
+                {
+                  \"name\": \"Repository\",
+                  \"value\": \"https://github.com/${{ github.repository }}\",
+                  \"inline\": true
+                },
+                {
+                  \"name\": \"Workflow\",
+                  \"value\": \"https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}\",
+                  \"inline\": true
+                }
+              ],
+              \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%S.000Z)\"
+            }]
+          }"
+
+  publish:
+    name: Publish NuGet Packages
+    runs-on: windows-latest
+    needs: [test, build, security]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          6.x
+          8.x
+
+    - name: Restore dependencies
+      run: dotnet restore ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj
+
+    - name: Build and Pack all Revit versions
+      run: |
+        $configs = @('Release R20', 'Release R21', 'Release R22', 'Release R23', 'Release R24', 'Release R25')
+        foreach ($config in $configs) {
+          Write-Host "Building configuration: $config"
+          dotnet build ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --no-restore --configuration "$config"
+          dotnet pack ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --no-build --configuration "$config" --output ./nupkg
+        }
+
+    - name: Get package info
+      id: package-info
+      run: |
+        $packageFile = Get-ChildItem -Path "nupkg/*.nupkg" | Select-Object -First 1
+        $packageName = [System.IO.Path]::GetFileNameWithoutExtension($packageFile.Name) -replace '\.\d+.*$', ''
+        $packageVersion = ($packageFile.Name -replace "^$packageName\.", '') -replace '\.nupkg$', ''
+        
+        echo "package-name=$packageName" >> $env:GITHUB_OUTPUT
+        echo "package-version=$packageVersion" >> $env:GITHUB_OUTPUT
+        echo "Package: $packageName version $packageVersion"
+
+    - name: Publish to NuGet
+      run: |
+        $packages = Get-ChildItem -Path "nupkg/*.nupkg"
+        foreach ($package in $packages) {
+          Write-Host "Publishing package: $($package.Name)"
+          dotnet nuget push $package.FullName --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+        }
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ steps.package-info.outputs.package-version }}
+        name: RevitMCPSDK v${{ steps.package-info.outputs.package-version }}
+        body: |
+          ## RevitMCPSDK Release v${{ steps.package-info.outputs.package-version }}
+
+          ### 📦 Installation
+
+          For each supported Revit version:
+          ```xml
+          <!-- Revit 2020 -->
+          <PackageReference Include="RevitMCPSDK" Version="2020.0.0.1" />
+          
+          <!-- Revit 2021 -->
+          <PackageReference Include="RevitMCPSDK" Version="2021.0.0.1" />
+          
+          <!-- Revit 2022 -->
+          <PackageReference Include="RevitMCPSDK" Version="2022.0.0.1" />
+          
+          <!-- Revit 2023 -->
+          <PackageReference Include="RevitMCPSDK" Version="2023.0.0.1" />
+          
+          <!-- Revit 2024 -->
+          <PackageReference Include="RevitMCPSDK" Version="2024.0.0.1" />
+          
+          <!-- Revit 2025 -->
+          <PackageReference Include="RevitMCPSDK" Version="2025.0.0.1" />
+          ```
+
+          Or via .NET CLI:
+          ```bash
+          # Replace version with your target Revit version
+          dotnet add package RevitMCPSDK --version ${{ steps.package-info.outputs.package-version }}
+          ```
+
+          ### 🔗 Package Links
+          - [NuGet Gallery](https://www.nuget.org/packages/RevitMCPSDK)
+          - [GitHub Repository](https://github.com/DTDucas/RevitMCPSDK)
+
+          ### ✨ Features
+          - **Multi-Version Support**: Compatible with Revit 2020-2025
+          - **JSON-RPC 2.0 Implementation**: Standardized communication protocol
+          - **MVVM Architecture**: Clean separation for WPF applications
+          - **Command Pattern**: Simplified command execution with error handling
+          - **External Event Framework**: Thread-safe Revit API operations
+          - **Comprehensive Error Handling**: Standardized error codes and reporting
+
+          ### 📋 Changes
+          Auto-generated release from main branch.
+        draft: false
+        prerelease: false
+        files: nupkg/*.nupkg
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Notify Discord
+      if: always()
+      run: |
+        if ("${{ job.status }}" -eq "success") {
+          $STATUS = "✅ SUCCESS"
+          $COLOR = 65280
+          $DESCRIPTION = "RevitMCPSDK v${{ steps.package-info.outputs.package-version }} published successfully to NuGet"
+        } else {
+          $STATUS = "❌ FAILED"
+          $COLOR = 16711680
+          $DESCRIPTION = "RevitMCPSDK package publication failed"
+        }
+
+        $body = @{
+          embeds = @(@{
+            title = "RevitMCPSDK - NuGet Package Publication"
+            description = $DESCRIPTION
+            color = $COLOR
+            fields = @(
+              @{
+                name = "Status"
+                value = $STATUS
+                inline = $true
+              },
+              @{
+                name = "Repository"
+                value = "https://github.com/${{ github.repository }}"
+                inline = $true
+              },
+              @{
+                name = "Commit"
+                value = "[${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})"
+                inline = $true
+              },
+              @{
+                name = "Package Version"
+                value = "${{ steps.package-info.outputs.package-version }}"
+                inline = $true
+              },
+              @{
+                name = "NuGet Gallery"
+                value = "[View Package](https://www.nuget.org/packages/RevitMCPSDK)"
+                inline = $true
+              },
+              @{
+                name = "GitHub Release"
+                value = "[View Release](https://github.com/${{ github.repository }}/releases/tag/v${{ steps.package-info.outputs.package-version }})"
+                inline = $true
+              }
+            )
+            timestamp = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+          })
+        } | ConvertTo-Json -Depth 10
+
+        Invoke-RestMethod -Uri "${{ secrets.DISCORD_WEBHOOK_URL }}" -Method POST -ContentType "application/json" -Body $body

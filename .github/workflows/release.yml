@@ -1,0 +1,294 @@
+name: Manual Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 0.2.0)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Mark as pre-release'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  PROJECT_PATH: 'RevitMCPSDK'
+
+jobs:
+  validate-inputs:
+    name: Validate Release Inputs
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Validate version format
+      run: |
+        if [[ ! "${{ github.event.inputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9-]+)?$ ]]; then
+          echo "❌ Invalid version format. Use semantic versioning (e.g., 1.2.0 or 1.2.0-beta.1)"
+          exit 1
+        fi
+        echo "✅ Version format is valid"
+
+  release-revitmcpsdk:
+    name: Release RevitMCPSDK
+    runs-on: windows-latest
+    needs: validate-inputs
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          6.x
+          8.x
+
+    - name: Restore dependencies
+      run: dotnet restore ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj
+
+    - name: Update version in project file
+      run: |
+        $version = "${{ github.event.inputs.version }}"
+        $csprojPath = "${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj"
+        
+        # Read the project file
+        $content = Get-Content $csprojPath -Raw
+        
+        # Update Version, FileVersion, and AssemblyVersion
+        $content = $content -replace '<Version>.*?</Version>', "<Version>$version</Version>"
+        $content = $content -replace '<FileVersion>.*?</FileVersion>', "<FileVersion>$version</FileVersion>"
+        $content = $content -replace '<AssemblyVersion>.*?</AssemblyVersion>', "<AssemblyVersion>$version</AssemblyVersion>"
+        
+        # Write back to file
+        Set-Content -Path $csprojPath -Value $content
+        
+        Write-Host "Updated version to: $version"
+        Write-Host "Project file content:"
+        Get-Content $csprojPath
+
+    - name: Build and test all configurations
+      run: |
+        $configs = @('Debug R20', 'Debug R21', 'Debug R22', 'Debug R23', 'Debug R24', 'Debug R25')
+        foreach ($config in $configs) {
+          Write-Host "Building and testing configuration: $config"
+          dotnet build ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --configuration "$config"
+        }
+
+    - name: Build and Pack all Revit versions
+      run: |
+        $configs = @('Release R20', 'Release R21', 'Release R22', 'Release R23', 'Release R24', 'Release R25')
+        foreach ($config in $configs) {
+          Write-Host "Building and packing configuration: $config"
+          dotnet build ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --configuration "$config"
+          dotnet pack ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --no-build --configuration "$config" --output ./nupkg
+        }
+
+    - name: Publish to NuGet
+      run: |
+        $packages = Get-ChildItem -Path "nupkg/*.nupkg"
+        foreach ($package in $packages) {
+          Write-Host "Publishing package: $($package.Name)"
+          if ("${{ github.event.inputs.prerelease }}" -eq "true") {
+            dotnet nuget push $package.FullName --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+          } else {
+            dotnet nuget push $package.FullName --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+          }
+        }
+
+    - name: Upload package artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: revitmcpsdk-packages-${{ github.event.inputs.version }}
+        path: nupkg/*.nupkg
+        retention-days: 90
+
+  create-github-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: release-revitmcpsdk
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download package artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: revitmcpsdk-packages-${{ github.event.inputs.version }}
+        path: ./artifacts/
+
+    - name: Generate release notes
+      id: release-notes
+      run: |
+        cat > release-notes.md << 'EOF'
+        ## RevitMCPSDK v${{ github.event.inputs.version }}
+
+        ### 📦 Package Information
+
+        RevitMCPSDK is available as separate NuGet packages for each supported Revit version:
+
+        ```xml
+        <!-- For Revit 2020 -->
+        <PackageReference Include="RevitMCPSDK" Version="2020.${{ github.event.inputs.version }}" />
+
+        <!-- For Revit 2021 -->
+        <PackageReference Include="RevitMCPSDK" Version="2021.${{ github.event.inputs.version }}" />
+
+        <!-- For Revit 2022 -->
+        <PackageReference Include="RevitMCPSDK" Version="2022.${{ github.event.inputs.version }}" />
+
+        <!-- For Revit 2023 -->
+        <PackageReference Include="RevitMCPSDK" Version="2023.${{ github.event.inputs.version }}" />
+
+        <!-- For Revit 2024 -->
+        <PackageReference Include="RevitMCPSDK" Version="2024.${{ github.event.inputs.version }}" />
+
+        <!-- For Revit 2025 -->
+        <PackageReference Include="RevitMCPSDK" Version="2025.${{ github.event.inputs.version }}" />
+        ```
+
+        Or using .NET CLI:
+        ```bash
+        # Replace with your target Revit version
+        dotnet add package RevitMCPSDK --version 2025.${{ github.event.inputs.version }}
+        ```
+
+        **NuGet Gallery:** https://www.nuget.org/packages/RevitMCPSDK
+
+        ### 🔧 Features
+        - **Multi-Version Support**: Compatible with Revit 2020-2025
+        - **JSON-RPC 2.0 Implementation**: Standardized communication protocol  
+        - **MVVM Architecture**: Clean separation of Model-View-ViewModel for WPF applications
+        - **SOLID Principles**: Follows best practices in software design
+        - **Command Pattern**: Simplified command execution with error handling
+        - **External Event Framework**: Thread-safe execution of Revit API operations
+        - **Versioning Support**: Compatibility management between different Revit versions
+        - **Comprehensive Error Handling**: Standardized error codes and reporting
+
+        ### 🛡️ Architecture
+        - **Command System**: Execute Revit API operations through standardized commands
+        - **External Events**: Thread-safe execution with `ExternalEventCommandBase`
+        - **JSON-RPC 2.0**: Request/response format with comprehensive error handling
+        - **Extension Methods**: Utilities for Document, Element, Geometry, Parameters, and more
+        - **Version Adapter**: Manage compatibility across different Revit versions
+
+        ### 📚 Documentation
+        See the repository README and CLAUDE.md for complete usage examples, architecture details, and development guidelines.
+
+        ### 🏗️ Getting Started
+        Check out the comprehensive examples in the README to get started with:
+        - Creating custom commands
+        - Implementing external events
+        - Managing multi-version compatibility
+        - Using extension methods
+        - Error handling best practices
+        EOF
+
+        echo "release-notes<<EOF" >> $GITHUB_OUTPUT
+        cat release-notes.md >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    - name: Create Release
+      id: create-release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ github.event.inputs.version }}
+        name: RevitMCPSDK v${{ github.event.inputs.version }}
+        body: ${{ steps.release-notes.outputs.release-notes }}
+        draft: false
+        prerelease: ${{ github.event.inputs.prerelease }}
+        files: ./artifacts/*.nupkg
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+  notify-completion:
+    name: Notify Release Completion
+    runs-on: ubuntu-latest
+    needs: create-github-release
+    if: always()
+
+    steps:
+    - name: Send notification
+      run: |
+        if [ "${{ needs.create-github-release.result }}" == "success" ]; then
+          echo "🎉 RevitMCPSDK Release v${{ github.event.inputs.version }} completed successfully!"
+          echo "📦 NuGet packages published to registry"
+          echo "🔗 GitHub Release: https://github.com/${{ github.repository }}/releases/tag/v${{ github.event.inputs.version }}"
+          echo "📚 NuGet Gallery: https://www.nuget.org/packages/RevitMCPSDK"
+        else
+          echo "❌ Release v${{ github.event.inputs.version }} failed"
+          echo "Check the workflow logs for details"
+        fi
+
+    - name: Notify Discord
+      run: |
+        if [ "${{ needs.create-github-release.result }}" == "success" ]; then
+          STATUS="🎉 SUCCESS"
+          COLOR="65280"
+          DESCRIPTION="RevitMCPSDK Release v${{ github.event.inputs.version }} completed successfully!"
+          TITLE="🚀 New Release Published"
+        else
+          STATUS="❌ FAILED"
+          COLOR="16711680"
+          DESCRIPTION="RevitMCPSDK Release v${{ github.event.inputs.version }} failed to complete"
+          TITLE="⚠️ Release Failed"
+        fi
+
+        curl -X POST "${{ secrets.DISCORD_WEBHOOK_URL }}" \
+          -H "Content-Type: application/json" \
+          -d "{
+            \"embeds\": [{
+              \"title\": \"$TITLE\",
+              \"description\": \"$DESCRIPTION\",
+              \"color\": $COLOR,
+              \"fields\": [
+                {
+                  \"name\": \"Version\",
+                  \"value\": \"v${{ github.event.inputs.version }}\",
+                  \"inline\": true
+                },
+                {
+                  \"name\": \"Pre-release\",
+                  \"value\": \"${{ github.event.inputs.prerelease }}\",
+                  \"inline\": true
+                },
+                {
+                  \"name\": \"Triggered By\",
+                  \"value\": \"${{ github.actor }}\",
+                  \"inline\": true
+                },
+                {
+                  \"name\": \"Repository\",
+                  \"value\": \"[RevitMCPSDK](https://github.com/${{ github.repository }})\",
+                  \"inline\": true
+                },
+                {
+                  \"name\": \"GitHub Release\",
+                  \"value\": \"[View Release](https://github.com/${{ github.repository }}/releases/tag/v${{ github.event.inputs.version }})\",
+                  \"inline\": true
+                },
+                {
+                  \"name\": \"NuGet Gallery\",
+                  \"value\": \"[View Packages](https://www.nuget.org/packages/RevitMCPSDK)\",
+                  \"inline\": true
+                },
+                {
+                  \"name\": \"Supported Revit Versions\",
+                  \"value\": \"2020, 2021, 2022, 2023, 2024, 2025\",
+                  \"inline\": false
+                },
+                {
+                  \"name\": \"Installation\",
+                  \"value\": \"\`\`\`xml\\n<PackageReference Include=\\\"RevitMCPSDK\\\" Version=\\\"$(RevitVersion).${{ github.event.inputs.version }}\\\" />\\n\`\`\`\",
+                  \"inline\": false
+                }
+              ],
+              \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%S.000Z)\"
+            }]
+          }"
