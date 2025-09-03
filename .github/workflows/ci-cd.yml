@@ -36,12 +36,12 @@ jobs:
     - name: Restore dependencies
       run: |
         Write-Host "Restoring dependencies for configuration: ${{ matrix.revit-config }}"
-        dotnet restore ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj -c "${{ matrix.revit-config }}"
+        dotnet restore ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --configuration "${{ matrix.revit-config }}"
 
     - name: Build solution
       run: |
         Write-Host "Building configuration: ${{ matrix.revit-config }}"
-        dotnet build ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --no-restore -c "${{ matrix.revit-config }}" --verbosity minimal
+        dotnet build ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --no-restore --configuration "${{ matrix.revit-config }}" --verbosity minimal
 
     - name: Upload build artifacts
       if: always()
@@ -124,13 +124,13 @@ jobs:
         
         foreach ($config in $configs) {
           Write-Host "Restoring dependencies for configuration: $config"
-          dotnet restore ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj -c "$config"
+          dotnet restore ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --configuration "$config"
           
           Write-Host "Building configuration: $config"
-          dotnet build ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --no-restore -c "$config" --verbosity minimal
+          dotnet build ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --no-restore --configuration "$config" --verbosity minimal
           
           Write-Host "Packing configuration: $config"
-          dotnet pack ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --no-build -c "$config" --output ./nupkg --verbosity minimal
+          dotnet pack ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --no-build --configuration "$config" --output ./nupkg --verbosity minimal
         }
 
     - name: Upload package artifacts
@@ -154,7 +154,7 @@ jobs:
         dotnet-version: '8.x'
 
     - name: Restore dependencies for R25 configuration
-      run: dotnet restore ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj -c "Release R25"
+      run: dotnet restore ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --configuration "Release R25"
 
     - name: Run security analysis
       run: |
@@ -234,13 +234,13 @@ jobs:
         
         foreach ($config in $configs) {
           Write-Host "Restoring dependencies for configuration: $config"
-          dotnet restore ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj -c "$config"
+          dotnet restore ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --configuration "$config"
           
           Write-Host "Building configuration: $config"
-          dotnet build ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --no-restore -c "$config" --verbosity minimal
+          dotnet build ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --no-restore --configuration "$config" --verbosity minimal
           
           Write-Host "Packing configuration: $config"
-          dotnet pack ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --no-build -c "$config" --output ./nupkg --verbosity minimal
+          dotnet pack ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj --no-build --configuration "$config" --output ./nupkg --verbosity minimal
         }
 
     - name: Get package info
