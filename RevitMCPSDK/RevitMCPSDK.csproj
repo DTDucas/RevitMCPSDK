@@ -11,6 +11,7 @@
 
 		<!-- NuGet Package Properties -->
 		<GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+		<PackageId>RevitMCPSDK</PackageId>
 		<Authors>Duong Tran Quang - DTDucas</Authors>
 		<Company>Duong Tran Quang - DTDucas</Company>
 		<Description>Revit MCP SDK for Revit API development</Description>

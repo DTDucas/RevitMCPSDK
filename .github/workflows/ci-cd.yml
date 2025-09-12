@@ -258,6 +258,10 @@ jobs:
         echo "Package: $packageName base version $baseVersion"
         echo "Generated packages for all Revit versions (2020-2026)"
 
+    - name: Configure GitHub Packages authentication
+      run: |
+        dotnet nuget add source --username DTDucas --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/DTDucas/index.json"
+
     - name: Publish to NuGet
       run: |
         $packages = Get-ChildItem -Path "nupkg/*.nupkg"
@@ -265,12 +269,26 @@ jobs:
         $packages | ForEach-Object { Write-Host "  - $($_.Name)" }
         
         foreach ($package in $packages) {
-          Write-Host "Publishing package: $($package.Name)"
+          Write-Host "Publishing package to NuGet.org: $($package.Name)"
           try {
             dotnet nuget push $package.FullName --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
-            Write-Host "✅ Successfully published: $($package.Name)"
+            Write-Host "✅ Successfully published to NuGet.org: $($package.Name)"
           } catch {
-            Write-Host "❌ Failed to publish: $($package.Name) - $($_.Exception.Message)"
+            Write-Host "❌ Failed to publish to NuGet.org: $($package.Name) - $($_.Exception.Message)"
+          }
+        }
+
+    - name: Publish to GitHub Packages
+      run: |
+        $packages = Get-ChildItem -Path "nupkg/*.nupkg"
+        
+        foreach ($package in $packages) {
+          Write-Host "Publishing package to GitHub Packages: $($package.Name)"
+          try {
+            dotnet nuget push $package.FullName --source "github" --skip-duplicate
+            Write-Host "✅ Successfully published to GitHub Packages: $($package.Name)"
+          } catch {
+            Write-Host "❌ Failed to publish to GitHub Packages: $($package.Name) - $($_.Exception.Message)"
           }
         }
 
