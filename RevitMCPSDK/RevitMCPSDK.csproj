@@ -23,7 +23,7 @@
 		<PackageTags>Revit;API;SDK;MCP;Duong Tran Quang - DTDucas</PackageTags>
 		<PackageIcon>RevitMCPSDK256.png</PackageIcon>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<BaseVersion>0.0.4.1</BaseVersion>
+		<BaseVersion>0.0.5</BaseVersion>
 		<Version>$(BaseVersion)</Version>
 		<FileVersion>$(BaseVersion)</FileVersion>
 		<AssemblyVersion>$(BaseVersion)</AssemblyVersion>
