@@ -6,7 +6,7 @@ RevitMCPSDK is a comprehensive software development kit for Autodesk Revit that 
 
 ## Key Features
 
-- **Multi-Version Support**: Compatible with Revit 2020-2026
+- **Multi-Version Support**: Compatible with Revit 2020-2027
 - **JSON-RPC 2.0 Implementation**: Standardized communication protocol
 - **MVVM Architecture**: Clean separation of Model-View-ViewModel for WPF applications
 - **SOLID Principles**: Follows best practices in software design
@@ -29,6 +29,7 @@ Install-Package RevitMCPSDK -Version 2023.0.0.1 // For Revit 2023
 Install-Package RevitMCPSDK -Version 2024.0.0.1 // For Revit 2024
 Install-Package RevitMCPSDK -Version 2025.0.0.1 // For Revit 2025
 Install-Package RevitMCPSDK -Version 2026.0.0.1 // For Revit 2026
+Install-Package RevitMCPSDK -Version 2027.0.0.1 // For Revit 2027 (.NET 10)
 ```
 Or, if you prefer using PackageReference in your .csproj file:
 
@@ -122,7 +123,7 @@ The SDK includes utilities for managing compatibility across different Revit ver
 ```csharp
 // Check if the current Revit version is supported
 RevitVersionAdapter adapter = new RevitVersionAdapter(application);
-bool isSupported = adapter.IsVersionSupported(new[] { "2020", "2021", "2022", "2023", "2024", "2025", "2026" });
+bool isSupported = adapter.IsVersionSupported(new[] { "2020", "2021", "2022", "2023", "2024", "2025", "2026", "2027" });
 
 // Compare versions
 int result = VersionHelper.CompareVersions("2020", "2025"); // Returns -1 (2020 < 2025)

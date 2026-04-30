@@ -22,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        revit-config: ['Debug R20', 'Debug R21', 'Debug R22', 'Debug R23', 'Debug R24', 'Debug R25', 'Debug R26']
+        revit-config: ['Debug R20', 'Debug R21', 'Debug R22', 'Debug R23', 'Debug R24', 'Debug R25', 'Debug R26', 'Debug R27']
 
     steps:
     - name: Checkout code
@@ -31,7 +31,9 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '8.x'
+        dotnet-version: |
+          8.x
+          10.x
 
     - name: Restore dependencies
       run: |
