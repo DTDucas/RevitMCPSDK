@@ -271,5 +271,5 @@ For support, please open an issue on the [GitHub repository](https://github.com/
 ## Author
 
 Duong Tran Quang - DTDucas
-
+Author: [dtducas.com](https://dtducas.com)
 Copyright © 2025 Duong Tran Quang - DTDucas
