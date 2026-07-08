@@ -165,13 +165,12 @@ jobs:
     - name: Run security analysis
       run: |
         Write-Host "Running security analysis on RevitMCPSDK dependencies"
-        try {
-          dotnet list ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj package --vulnerable --include-transitive 2>&1 | Tee-Object -FilePath security-report.txt
-          Get-Content security-report.txt
-        } catch {
-          Write-Host "Security analysis completed with warnings or no vulnerabilities found"
-          "No vulnerabilities detected or analysis completed with warnings" | Out-File -FilePath security-report.txt
+        dotnet list ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj package --vulnerable --include-transitive -p:Configuration="Release R25" 2>&1 | Tee-Object -FilePath security-report.txt
+        if ($LASTEXITCODE -ne 0) {
+          Write-Host "::warning::dotnet list package exited with code $LASTEXITCODE - review security-report.txt for details"
         }
+        Get-Content security-report.txt
+        exit 0
 
     - name: Upload security report
       uses: actions/upload-artifact@v4
@@ -279,29 +278,43 @@ jobs:
         $packages = Get-ChildItem -Path "nupkg/*.nupkg"
         Write-Host "Found $($packages.Count) packages to publish:"
         $packages | ForEach-Object { Write-Host "  - $($_.Name)" }
-        
+
+        $failed = @()
         foreach ($package in $packages) {
           Write-Host "Publishing package to NuGet.org: $($package.Name)"
-          try {
-            dotnet nuget push $package.FullName --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+          dotnet nuget push $package.FullName --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+          if ($LASTEXITCODE -eq 0) {
             Write-Host "✅ Successfully published to NuGet.org: $($package.Name)"
-          } catch {
-            Write-Host "❌ Failed to publish to NuGet.org: $($package.Name) - $($_.Exception.Message)"
+          } else {
+            Write-Host "❌ Failed to publish to NuGet.org: $($package.Name) (exit code $LASTEXITCODE)"
+            $failed += $package.Name
           }
+        }
+
+        if ($failed.Count -gt 0) {
+          Write-Host "::error::Failed to publish $($failed.Count) package(s) to NuGet.org: $($failed -join ', ')"
+          exit 1
         }
 
     - name: Publish to GitHub Packages
       run: |
         $packages = Get-ChildItem -Path "nupkg/*.nupkg"
-        
+
+        $failed = @()
         foreach ($package in $packages) {
           Write-Host "Publishing package to GitHub Packages: $($package.Name)"
-          try {
-            dotnet nuget push $package.FullName --source "github" --skip-duplicate
+          dotnet nuget push $package.FullName --source "github" --skip-duplicate
+          if ($LASTEXITCODE -eq 0) {
             Write-Host "✅ Successfully published to GitHub Packages: $($package.Name)"
-          } catch {
-            Write-Host "❌ Failed to publish to GitHub Packages: $($package.Name) - $($_.Exception.Message)"
+          } else {
+            Write-Host "❌ Failed to publish to GitHub Packages: $($package.Name) (exit code $LASTEXITCODE)"
+            $failed += $package.Name
           }
+        }
+
+        if ($failed.Count -gt 0) {
+          Write-Host "::error::Failed to publish $($failed.Count) package(s) to GitHub Packages: $($failed -join ', ')"
+          exit 1
         }
 
     - name: Create GitHub Release

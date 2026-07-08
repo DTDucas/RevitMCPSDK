@@ -96,13 +96,21 @@ jobs:
     - name: Publish to NuGet
       run: |
         $packages = Get-ChildItem -Path "nupkg/*.nupkg"
+        $failed = @()
         foreach ($package in $packages) {
           Write-Host "Publishing package: $($package.Name)"
-          if ("${{ github.event.inputs.prerelease }}" -eq "true") {
-            dotnet nuget push $package.FullName --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+          dotnet nuget push $package.FullName --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "✅ Successfully published: $($package.Name)"
           } else {
-            dotnet nuget push $package.FullName --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+            Write-Host "❌ Failed to publish: $($package.Name) (exit code $LASTEXITCODE)"
+            $failed += $package.Name
           }
+        }
+
+        if ($failed.Count -gt 0) {
+          Write-Host "::error::Failed to publish $($failed.Count) package(s): $($failed -join ', ')"
+          exit 1
         }
 
     - name: Upload package artifacts
