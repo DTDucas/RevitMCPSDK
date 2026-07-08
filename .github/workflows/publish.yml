@@ -222,6 +222,10 @@ jobs:
     runs-on: windows-2022
     needs: [test, build, security]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      contents: write
+      packages: write
+      id-token: write # required for NuGet.org Trusted Publishing (OIDC)
 
     steps:
     - name: Checkout code
@@ -273,6 +277,12 @@ jobs:
         # Add GitHub Packages source
         dotnet nuget add source --username DTDucas --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/DTDucas/index.json"
 
+    - name: NuGet login (OIDC → temp API key)
+      uses: NuGet/login@v1
+      id: nuget-login
+      with:
+        user: ${{ secrets.NUGET_USER }}
+
     - name: Publish to NuGet
       run: |
         $packages = Get-ChildItem -Path "nupkg/*.nupkg"
@@ -282,7 +292,7 @@ jobs:
         $failed = @()
         foreach ($package in $packages) {
           Write-Host "Publishing package to NuGet.org: $($package.Name)"
-          dotnet nuget push $package.FullName --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+          dotnet nuget push $package.FullName --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
           if ($LASTEXITCODE -eq 0) {
             Write-Host "✅ Successfully published to NuGet.org: $($package.Name)"
           } else {
