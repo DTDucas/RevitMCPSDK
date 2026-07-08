@@ -46,7 +46,9 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '8.x'
+        dotnet-version: |
+          8.x
+          10.x
 
     - name: Update version in project file
       run: |
@@ -70,7 +72,7 @@ jobs:
 
     - name: Build and test all configurations
       run: |
-        $configs = @('Debug R20', 'Debug R21', 'Debug R22', 'Debug R23', 'Debug R24', 'Debug R25', 'Debug R26')
+        $configs = @('Debug R20', 'Debug R21', 'Debug R22', 'Debug R23', 'Debug R24', 'Debug R25', 'Debug R26', 'Debug R27')
         foreach ($config in $configs) {
           Write-Host "Restoring dependencies for configuration: $config"
           dotnet restore ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj -p:Configuration="$config"
@@ -80,7 +82,7 @@ jobs:
 
     - name: Build and Pack all Revit versions
       run: |
-        $configs = @('Release R20', 'Release R21', 'Release R22', 'Release R23', 'Release R24', 'Release R25', 'Release R26')
+        $configs = @('Release R20', 'Release R21', 'Release R22', 'Release R23', 'Release R24', 'Release R25', 'Release R26', 'Release R27')
         New-Item -ItemType Directory -Force -Path ./nupkg
         
         foreach ($config in $configs) {
@@ -153,6 +155,12 @@ jobs:
 
         <!-- For Revit 2025 -->
         <PackageReference Include="RevitMCPSDK" Version="2025.${{ github.event.inputs.version }}" />
+
+        <!-- For Revit 2026 -->
+        <PackageReference Include="RevitMCPSDK" Version="2026.${{ github.event.inputs.version }}" />
+
+        <!-- For Revit 2027 -->
+        <PackageReference Include="RevitMCPSDK" Version="2027.${{ github.event.inputs.version }}" />
         ```
 
         Or using .NET CLI:
@@ -164,7 +172,7 @@ jobs:
         **NuGet Gallery:** https://www.nuget.org/packages/RevitMCPSDK
 
         ### 🔧 Features
-        - **Multi-Version Support**: Compatible with Revit 2020-2025
+        - **Multi-Version Support**: Compatible with Revit 2020-2027
         - **JSON-RPC 2.0 Implementation**: Standardized communication protocol  
         - **MVVM Architecture**: Clean separation of Model-View-ViewModel for WPF applications
         - **SOLID Principles**: Follows best practices in software design
@@ -281,7 +289,7 @@ jobs:
                 },
                 {
                   \"name\": \"Supported Revit Versions\",
-                  \"value\": \"2020, 2021, 2022, 2023, 2024, 2025\",
+                  \"value\": \"2020, 2021, 2022, 2023, 2024, 2025, 2026, 2027\",
                   \"inline\": false
                 },
                 {

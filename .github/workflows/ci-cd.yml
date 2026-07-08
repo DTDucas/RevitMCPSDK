@@ -22,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        revit-config: ['Debug R20', 'Debug R21', 'Debug R22', 'Debug R23', 'Debug R24', 'Debug R25', 'Debug R26']
+        revit-config: ['Debug R20', 'Debug R21', 'Debug R22', 'Debug R23', 'Debug R24', 'Debug R25', 'Debug R26', 'Debug R27']
 
     steps:
     - name: Checkout code
@@ -31,7 +31,9 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '8.x'
+        dotnet-version: |
+          8.x
+          10.x
 
     - name: Restore dependencies
       run: |
@@ -115,11 +117,13 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '8.x'
+        dotnet-version: |
+          8.x
+          10.x
 
     - name: Build and Pack all Revit versions
       run: |
-        $configs = @('Release R20', 'Release R21', 'Release R22', 'Release R23', 'Release R24', 'Release R25', 'Release R26')
+        $configs = @('Release R20', 'Release R21', 'Release R22', 'Release R23', 'Release R24', 'Release R25', 'Release R26', 'Release R27')
         New-Item -ItemType Directory -Force -Path ./nupkg
         
         foreach ($config in $configs) {
@@ -151,7 +155,9 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '8.x'
+        dotnet-version: |
+          8.x
+          10.x
 
     - name: Restore dependencies for R25 configuration
       run: dotnet restore ${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj -p:Configuration="Release R25"
@@ -225,11 +231,13 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '8.x'
+        dotnet-version: |
+          8.x
+          10.x
 
     - name: Build and Pack all Revit versions
       run: |
-        $configs = @('Release R20', 'Release R21', 'Release R22', 'Release R23', 'Release R24', 'Release R25', 'Release R26')
+        $configs = @('Release R20', 'Release R21', 'Release R22', 'Release R23', 'Release R24', 'Release R25', 'Release R26', 'Release R27')
         New-Item -ItemType Directory -Force -Path ./nupkg
         
         foreach ($config in $configs) {
@@ -247,8 +255,9 @@ jobs:
       id: package-info
       run: |
         $packageFiles = Get-ChildItem -Path "nupkg/*.nupkg"
-        $baseVersion = "0.0.3"  # Base version from project
-        
+        $csprojContent = Get-Content "${{ env.PROJECT_PATH }}/${{ env.PROJECT_PATH }}.csproj" -Raw
+        $baseVersion = [regex]::Match($csprojContent, '<BaseVersion>(.*?)</BaseVersion>').Groups[1].Value
+
         # Get the first package file to extract the package name
         $firstPackage = $packageFiles | Select-Object -First 1
         $packageName = "RevitMCPSDK"
@@ -256,7 +265,7 @@ jobs:
         echo "package-name=$packageName" >> $env:GITHUB_OUTPUT
         echo "package-version=$baseVersion" >> $env:GITHUB_OUTPUT
         echo "Package: $packageName base version $baseVersion"
-        echo "Generated packages for all Revit versions (2020-2026)"
+        echo "Generated packages for all Revit versions (2020-2027)"
 
     - name: Configure GitHub Packages authentication
       run: |
@@ -324,6 +333,12 @@ jobs:
           
           <!-- Revit 2025 -->
           <PackageReference Include="RevitMCPSDK" Version="2025.0.0.1" />
+
+          <!-- Revit 2026 -->
+          <PackageReference Include="RevitMCPSDK" Version="2026.0.0.1" />
+
+          <!-- Revit 2027 -->
+          <PackageReference Include="RevitMCPSDK" Version="2027.0.0.1" />
           ```
 
           Or via .NET CLI:
@@ -337,7 +352,7 @@ jobs:
           - [GitHub Repository](https://github.com/DTDucas/RevitMCPSDK)
 
           ### ✨ Features
-          - **Multi-Version Support**: Compatible with Revit 2020-2025
+          - **Multi-Version Support**: Compatible with Revit 2020-2027
           - **JSON-RPC 2.0 Implementation**: Standardized communication protocol
           - **MVVM Architecture**: Clean separation for WPF applications
           - **Command Pattern**: Simplified command execution with error handling

@@ -1,6 +1,6 @@
 $packageId = "RevitMCPSDK"
-$baseVersion = "0.0.2"
-$revitVersions = @("2020", "2021", "2022", "2023", "2024", "2025")
+$baseVersion = "0.0.5"
+$revitVersions = @("2020", "2021", "2022", "2023", "2024", "2025", "2026", "2027")
 $outputDir = ".\nupkg"
 $nugetPath = "nuget"
 
@@ -23,7 +23,9 @@ function Build-RevitVersion {
     $configuration = "Release R$($revitVersion.Substring(2))"
     $configurationParam = """$configuration"""
     
-    $targetFramework = if ($revitVersion -eq "2025") { "net8.0-windows10.0.19041.0" } else { "net48" }
+    $targetFramework = if ($revitVersion -eq "2027") { "net10.0-windows10.0.19041.0" }
+        elseif ($revitVersion -in @("2025", "2026")) { "net8.0-windows10.0.19041.0" }
+        else { "net48" }
     
     dotnet restore --configuration $configurationParam
     dotnet clean --configuration $configurationParam
